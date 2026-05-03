@@ -1,5 +1,7 @@
 using System;
 using System.Drawing;
+using System.IO;
+using System.Linq;
 using System.Windows.Forms;
 using SecurIT_Memory.Core;
 
@@ -12,13 +14,14 @@ namespace SecurIT_Memory.Views
         private RadioButton _easyRadio;
         private RadioButton _normalRadio;
         private RadioButton _hardRadio;
+        private ComboBox _themeComboBox;
         private Button _saveButton;
 
         public OptionsForm()
         {
             Text = "Options";
             StartPosition = FormStartPosition.CenterParent;
-            ClientSize = new Size(420, 340);
+            ClientSize = new Size(460, 380);
             Padding = new Padding(16);
             Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
             BackColor = Color.FromArgb(30, 30, 30);
@@ -62,6 +65,26 @@ namespace SecurIT_Memory.Views
             difficultyGroup.Controls.Add(_normalRadio);
             difficultyGroup.Controls.Add(_easyRadio);
 
+            var themeGroup = new GroupBox
+            {
+                Text = "Thème de cartes",
+                ForeColor = Color.White,
+                Dock = DockStyle.Top,
+                Height = 100,
+                Padding = new Padding(10),
+                Margin = new Padding(0, 0, 0, 10)
+            };
+
+            _themeComboBox = new ComboBox
+            {
+                Dock = DockStyle.Top,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                BackColor = Color.FromArgb(45, 45, 48),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat
+            };
+            themeGroup.Controls.Add(_themeComboBox);
+
             _saveButton = new Button
             {
                 Text = "Enregistrer",
@@ -75,6 +98,7 @@ namespace SecurIT_Memory.Views
             _saveButton.Click += SaveButton_Click;
 
             Controls.Add(_saveButton);
+            Controls.Add(themeGroup);
             Controls.Add(difficultyGroup);
             Controls.Add(sizeGroup);
         }
@@ -86,12 +110,37 @@ namespace SecurIT_Memory.Views
             _easyRadio.Checked = GameSettings.Difficulty == "Facile";
             _normalRadio.Checked = GameSettings.Difficulty == "Normal";
             _hardRadio.Checked = GameSettings.Difficulty == "Difficile";
+
+            var availableThemes = ThemeManager.GetAvailableThemes();
+            _themeComboBox.Items.Clear();
+
+            if (availableThemes.Count == 0)
+            {
+                _themeComboBox.Items.Add("Crypto");
+            }
+            else
+            {
+                _themeComboBox.Items.AddRange(availableThemes.ToArray());
+            }
+
+            if (_themeComboBox.Items.Contains(GameSettings.ThemeName))
+            {
+                _themeComboBox.SelectedItem = GameSettings.ThemeName;
+            }
+            else
+            {
+                _themeComboBox.SelectedIndex = 0;
+            }
         }
 
         private void SaveButton_Click(object sender, EventArgs e)
         {
             GameSettings.GridSize = _grid6x6Radio.Checked ? 6 : 4;
             GameSettings.Difficulty = _easyRadio.Checked ? "Facile" : _hardRadio.Checked ? "Difficile" : "Normal";
+            if (_themeComboBox.SelectedItem is string selectedTheme)
+            {
+                GameSettings.ThemeName = selectedTheme;
+            }
             DialogResult = DialogResult.OK;
             Close();
         }

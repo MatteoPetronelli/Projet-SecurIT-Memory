@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "ZczwrppbAm0yIoooZmhPT9O1/bM8NBwJzaHkAlyAFDhJ0ESBQVba6HFAx2Pii3aJJVkgVvWN/kYo2UBiv55V7g==",
+  "success": true,
+  "projectFilePath": "C:\\Users\\thoma\\Projet-SecurIT-Memory\\Projet-SecurIT-Memory.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\thoma\\.nuget\\packages\\system.data.sqlclient\\4.9.1\\system.data.sqlclient.4.9.1.nupkg.sha512"
+  ],
+  "logs": []
+}
