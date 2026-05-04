@@ -4,7 +4,7 @@
 Ce projet a été développé dans le cadre de la préparation du Salon de l'Innovation Tech pour la start-up **SecurIT**, spécialisée en cybersécurité.  
 Le but de cette application est de proposer un mini-jeu interactif (Jeu de Memory) aux visiteurs du stand, afin de les sensibiliser aux concepts clés de la cybersécurité (Mots de passe, Pare-feu, Virus, etc.) tout en testant leur mémoire.
 
-Ce projet a été réalisé en binôme en utilisant **C#** et le framework **WinForms**.
+Ce projet a été réalisé en binôme en utilisant **C#** et le framework **WinForms** (.NET 5.0).
 
 ---
 
@@ -18,8 +18,7 @@ L'application respecte une séparation stricte entre la logique métier (Backend
 - `Ressources/` : Assets du jeu (Audios et Images classées par thèmes)
 
 ### Arborescence
-
-```text
+```
 Projet-SecurIT-Memory/
 ├── Core/
 │   ├── DatabaseManager.cs
@@ -44,32 +43,25 @@ Projet-SecurIT-Memory/
 └── README.md
 ```
 
----
-
 ## Installation et Mise en Marche
 
 ### Étapes d'installation
 
-1. **Cloner le dépôt**
-```bash
-git clone <url_du_depot>
-```
+1. Cloner le dépôt
+   ```bash
+   git clone <url_du_depot>
+   ```
 
-2. **Ouvrir la solution**  
-Double-cliquez sur le fichier `Projet-SecurIT-Memory.sln` pour ouvrir le projet dans Visual Studio Code.
+2. Ouvrir la solution
+   Double-cliquez sur le fichier Projet-SecurIT-Memory.sln pour ouvrir le projet dans Visual Studio.
 
-3. **Vérification des ressources**  
-Assurez-vous que les dossiers dans `Ressources/Images/` et `Ressources/Audio/` contiennent bien les fichiers nécessaires :
-- Images : `.png` / `.jpg`
-- Sons : `.wav`
+3. Vérification des ressources
+   Assurez-vous que les dossiers dans Ressources/Images/ et Ressources/Audio/ contiennent bien les fichiers nécessaires :
+   - Images : .png / .jpg
+   - Sons : .wav
 
-4. **Base de données**  
-La base SQL et la table `Scores` sont générées automatiquement au premier lancement via `DatabaseManager.cs`.
-
-5. **Compilation et lancement**  
-Appuyez sur **F5** ou cliquez sur **Run** puis **Start Debuggin** ou **Start Without Debugging** dans Visual Studio Code.
-
----
+4. Compilation et lancement
+   Dans Visual Studio, appuyez sur F5 ou cliquez sur Générer > Générer la solution puis lancez l'exécutable.
 
 ## Utilisation et Fonctionnement
 
@@ -81,30 +73,22 @@ Au lancement, le joueur peut :
 
 ### Options
 Permet de configurer :
-- La difficulté (taille de la grille)
+- La difficulté (taille de la grille dynamique)
 - Le thème visuel (Matériel, Logiciel, Cryptographie)
 
 ### En Jeu
+Le joueur clique sur deux cartes pour les retourner.
 
-- Le joueur clique sur deux cartes pour les retourner
-- Si elles correspondent → la paire reste visible
-- Sinon → elles se retournent après un court délai
-- Les clics sont temporairement bloqués pendant ce délai
+Des effets sonores accompagnent les interactions.
 
-### Mode Hardcore (Bonus)
-Si activé :
-- Toutes les 30 secondes, les cartes non trouvées changent de position aléatoirement
+Si elles correspondent → la paire reste visible.
+
+Sinon → elles se retournent après un court délai paramétrable selon la difficulté.
+
+Les clics sont temporairement bloqués pendant ce délai.
 
 ### Fin de Partie
-- Une fois toutes les paires trouvées :
-  - Le score est calculé (temps + nombre d'essais)
-  - Il est enregistré dans la base de données SQL
-  - Il alimente le **Leaderboard**
+Une fois toutes les paires trouvées :
+Un écran de victoire s'affiche avec une notification sonore.
 
----
-
-## Notes
-
-- Projet pédagogique orienté cybersécurité
-- Conçu pour une démonstration interactive en salon
-- Architecture claire facilitant la maintenance et l'évolution
+Le score est affiché (temps total écoulé + nombre d'essais nécessaires).
