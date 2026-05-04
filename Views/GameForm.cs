@@ -4,6 +4,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
+using System.Media;
 using SecurIT_Memory.Core;
 using SecurIT_Memory.Models;
 
@@ -211,6 +212,7 @@ namespace SecurIT_Memory.Views
             }
 
             RevealCard(box, card);
+            PlaySound("card-flip.wav");
 
             if (_firstBox == null)
             {
@@ -291,6 +293,7 @@ namespace SecurIT_Memory.Views
             if (_gameManager.CheckVictory(_pairCount))
             {
                 _gameTimer.Stop();
+                PlaySound("electro-win-sound.wav");
                 MessageBox.Show($"Victoire !\nTemps total : {TimeSpan.FromSeconds(_elapsedSeconds):mm\\:ss}\nNombre d'essais : {_gameManager.Attempts}", "Bravo", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
@@ -453,6 +456,22 @@ namespace SecurIT_Memory.Views
             }
 
             return bitmap;
+        }
+
+        private void PlaySound(string fileName)
+        {
+            try
+            {
+                string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Ressources", "Audio", fileName);
+                if (File.Exists(path))
+                {
+                    using (var player = new SoundPlayer(path))
+                    {
+                        player.Play(); // Play() joue le son en arrière-plan sans bloquer le jeu
+                    }
+                }
+            }
+            catch {}
         }
     }
 }
