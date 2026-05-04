@@ -4,6 +4,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
+using System.Media;
 using SecurIT_Memory.Core;
 using SecurIT_Memory.Models;
 
@@ -122,9 +123,21 @@ namespace SecurIT_Memory.Views
         private void LoadThemeImages()
         {
             var imagePaths = ThemeManager.GetImagePaths(GameSettings.ThemeName);
+            string logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "debug.log");
+            File.AppendAllText(logPath, $"{DateTime.Now:HH:mm:ss} [GameForm] Theme: {GameSettings.ThemeName}, Images found: {imagePaths.Count}\n");
+            
+            foreach (var p in imagePaths)
+            {
+                File.AppendAllText(logPath, $"{DateTime.Now:HH:mm:ss}   - {p}\n");
+            }
+
             if (imagePaths.Count == 0)
             {
-                MessageBox.Show("Aucune image thématique trouvée. \nAjoutez des fichiers PNG/JPG dans le dossier Ressources/Images/Crypto.", "Images manquantes", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                string rootPath = ThemeManager.GetImageRootPath();
+                string expectedPath = Path.Combine(rootPath, GameSettings.ThemeName);
+                string msg = $"Aucune image thématique trouvée pour le thème '{GameSettings.ThemeName}'.\nChemin attendu : {expectedPath}\nAjoutez des fichiers PNG/JPG/JPEG dans ce dossier.";
+                File.AppendAllText(logPath, $"{DateTime.Now:HH:mm:ss} [GameForm] {msg}\n");
+                MessageBox.Show(msg, "Images manquantes", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
 
             _selectedImagePaths = imagePaths.Take(_pairCount).ToList();
@@ -199,6 +212,7 @@ namespace SecurIT_Memory.Views
             }
 
             RevealCard(box, card);
+            PlaySound("card-flip.wav");
 
             if (_firstBox == null)
             {
@@ -279,6 +293,7 @@ namespace SecurIT_Memory.Views
             if (_gameManager.CheckVictory(_pairCount))
             {
                 _gameTimer.Stop();
+                PlaySound("electro-win-sound.wav");
                 MessageBox.Show($"Victoire !\nTemps total : {TimeSpan.FromSeconds(_elapsedSeconds):mm\\:ss}\nNombre d'essais : {_gameManager.Attempts}", "Bravo", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
@@ -296,12 +311,119 @@ namespace SecurIT_Memory.Views
 
         private Image LoadFaceImage(Card card)
         {
+            string logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "debug.log");
+            File.AppendAllText(logPath, $"{DateTime.Now:HH:mm:ss} [LoadFaceImage] Card {card.Id}: ImagePath='{card.ImagePath}'\n");
+
             if (!string.IsNullOrEmpty(card.ImagePath) && File.Exists(card.ImagePath))
             {
-                return Image.FromFile(card.ImagePath);
+                File.AppendAllText(logPath, $"{DateTime.Now:HH:mm:ss}   File exists\n");
+                try
+                {
+                    // Try loading with FileStream first (more forgiving for problematic JPEGs)
+                    using (var stream = new FileStream(card.ImagePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    {
+                        var original = Image.FromStream(stream, useEmbeddedColorManagement: false, validateImageData: false);
+                        File.AppendAllText(logPath, $"{DateTime.Now:HH:mm:ss}   Loaded via stream: {original.Width}x{original.Height}\n");
+                        // Clone the image to free the stream
+                        var clone = (Image)original.Clone();
+                        original.Dispose();
+                        var resized = ResizeImage(original, 220, 220);
+                        return AddTextOverlay(resized, card.Id.ToString());
+                    }
+                }
+                catch (Exception ex)
+                {
+                    File.AppendAllText(logPath, $"{DateTime.Now:HH:mm:ss}   Stream load failed ({ex.GetType().Name}), trying Bitmap...\n");
+                    try
+                    {
+                        var bitmap = new Bitmap(card.ImagePath);
+                        File.AppendAllText(logPath, $"{DateTime.Now:HH:mm:ss}   Loaded via Bitmap: {bitmap.Width}x{bitmap.Height}\n");
+                        var resized = ResizeImage(bitmap, 220, 220);
+                        return AddTextOverlay(resized, card.Id.ToString());
+                    }
+                    catch (Exception ex2)
+                    {
+                        File.AppendAllText(logPath, $"{DateTime.Now:HH:mm:ss}   Bitmap load failed ({ex2.GetType().Name}), generating theme image...\n");
+                        return GenerateThemeImage(card.Id);
+                    }
+                }
             }
+            else
+            {
+                File.AppendAllText(logPath, $"{DateTime.Now:HH:mm:ss}   File does not exist, generating theme image...\n");
+                return GenerateThemeImage(card.Id);
+            }
+        }
 
-            return CreatePlaceholderFace(card.Id);
+        private Image GenerateThemeImage(int cardId)
+        {
+            // Generate a simple themed image based on the theme name
+            var bitmap = new Bitmap(220, 220);
+            using (var graphics = Graphics.FromImage(bitmap))
+            {
+                // Generate a hash-based color from theme name
+                int themeHash = GameSettings.ThemeName.GetHashCode();
+                int r = 100 + (Math.Abs(themeHash) % 156);
+                int g = 100 + ((Math.Abs(themeHash) / 256) % 156);
+                int b = 100 + ((Math.Abs(themeHash) / 65536) % 156);
+                Color themeColor = Color.FromArgb(r, g, b);
+
+                // Fill background
+                graphics.Clear(themeColor);
+
+                // Draw theme name
+                using (var font = new Font("Segoe UI", 14, FontStyle.Bold, GraphicsUnit.Point))
+                {
+                    graphics.DrawString(GameSettings.ThemeName, font, Brushes.White, 10, 20);
+                }
+
+                // Draw card number prominently
+                using (var largeFont = new Font("Segoe UI", 60, FontStyle.Bold, GraphicsUnit.Point))
+                {
+                    string text = cardId.ToString();
+                    var textSize = graphics.MeasureString(text, largeFont);
+                    float x = (220 - textSize.Width) / 2;
+                    float y = (220 - textSize.Height) / 2 + 10;
+                    graphics.DrawString(text, largeFont, Brushes.White, x, y);
+                }
+            }
+            return bitmap;
+        }
+
+        private Image ResizeImage(Image source, int width, int height)
+        {
+            var resized = new Bitmap(width, height);
+            using (var graphics = Graphics.FromImage(resized))
+            {
+                graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
+                graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                graphics.DrawImage(source, 0, 0, width, height);
+            }
+            return resized;
+        }
+
+        private Image AddTextOverlay(Image originalImage, string text)
+        {
+            var finalImage = new Bitmap(originalImage);
+            using (var graphics = Graphics.FromImage(finalImage))
+            {
+                graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+
+                using (var font = new Font("Segoe UI", 16, FontStyle.Bold, GraphicsUnit.Point))
+                {
+                    var textSize = graphics.MeasureString(text, font);
+
+                    var rect = new RectangleF(5, 5, textSize.Width + 4, textSize.Height + 4);
+                    using (var bgBrush = new SolidBrush(Color.FromArgb(180, 0, 0, 0)))
+                    {
+                        graphics.FillRectangle(bgBrush, rect);
+                    }
+
+                    graphics.DrawString(text, font, Brushes.White, 7, 7);
+                }
+            }
+            return finalImage;
         }
 
         private Image CreateCardBackImage()
@@ -310,9 +432,13 @@ namespace SecurIT_Memory.Views
             using (Graphics g = Graphics.FromImage(bitmap))
             {
                 g.Clear(Color.FromArgb(55, 55, 60));
-                using var font = new Font("Segoe UI", 18F, FontStyle.Bold, GraphicsUnit.Point);
+                using var font = new Font("Segoe UI", 20F, FontStyle.Bold, GraphicsUnit.Point);
                 using var brush = new SolidBrush(Color.White);
-                g.DrawString("SECURIT", font, brush, new PointF(16, 90));
+                var text = "Security";
+                var textSize = g.MeasureString(text, font);
+                var x = (bitmap.Width - textSize.Width) / 2;
+                var y = (bitmap.Height - textSize.Height) / 2;
+                g.DrawString(text, font, brush, new PointF(x, y));
             }
 
             return bitmap;
@@ -330,6 +456,22 @@ namespace SecurIT_Memory.Views
             }
 
             return bitmap;
+        }
+
+        private void PlaySound(string fileName)
+        {
+            try
+            {
+                string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Ressources", "Audio", fileName);
+                if (File.Exists(path))
+                {
+                    using (var player = new SoundPlayer(path))
+                    {
+                        player.Play(); // Play() joue le son en arrière-plan sans bloquer le jeu
+                    }
+                }
+            }
+            catch {}
         }
     }
 }

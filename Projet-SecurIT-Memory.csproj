@@ -9,4 +9,9 @@
   <ItemGroup>
     <PackageReference Include="System.Data.SqlClient" Version="4.9.1" />
   </ItemGroup>
+	<ItemGroup>
+		<None Update="Ressources\**\*.*">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
 </Project>
