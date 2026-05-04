@@ -324,7 +324,8 @@ namespace SecurIT_Memory.Views
                         // Clone the image to free the stream
                         var clone = (Image)original.Clone();
                         original.Dispose();
-                        return ResizeImage(clone, 220, 220);
+                        var resized = ResizeImage(original, 220, 220);
+                        return AddTextOverlay(resized, card.Id.ToString());
                     }
                 }
                 catch (Exception ex)
@@ -334,7 +335,8 @@ namespace SecurIT_Memory.Views
                     {
                         var bitmap = new Bitmap(card.ImagePath);
                         File.AppendAllText(logPath, $"{DateTime.Now:HH:mm:ss}   Loaded via Bitmap: {bitmap.Width}x{bitmap.Height}\n");
-                        return ResizeImage(bitmap, 220, 220);
+                        var resized = ResizeImage(bitmap, 220, 220);
+                        return AddTextOverlay(resized, card.Id.ToString());
                     }
                     catch (Exception ex2)
                     {
@@ -396,6 +398,29 @@ namespace SecurIT_Memory.Views
                 graphics.DrawImage(source, 0, 0, width, height);
             }
             return resized;
+        }
+
+        private Image AddTextOverlay(Image originalImage, string text)
+        {
+            var finalImage = new Bitmap(originalImage);
+            using (var graphics = Graphics.FromImage(finalImage))
+            {
+                graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+
+                using (var font = new Font("Segoe UI", 16, FontStyle.Bold, GraphicsUnit.Point))
+                {
+                    var textSize = graphics.MeasureString(text, font);
+
+                    var rect = new RectangleF(5, 5, textSize.Width + 4, textSize.Height + 4);
+                    using (var bgBrush = new SolidBrush(Color.FromArgb(180, 0, 0, 0)))
+                    {
+                        graphics.FillRectangle(bgBrush, rect);
+                    }
+
+                    graphics.DrawString(text, font, Brushes.White, 7, 7);
+                }
+            }
+            return finalImage;
         }
 
         private Image CreateCardBackImage()
